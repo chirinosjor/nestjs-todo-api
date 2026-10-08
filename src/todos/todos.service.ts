@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Todo } from './todos.interface';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Todo as TodoEntity } from './todos.entity';
 
 @Injectable()
 export class TodosService {
+
+  constructor(@InjectRepository(TodoEntity) private readonly todosRepository: Repository<Todo>) { }
+
   todos: Todo[] = [];
 
   getTodos(): Todo[] {
