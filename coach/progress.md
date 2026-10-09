@@ -121,8 +121,17 @@ Not broken, but misleading: a 200 `[]` does not prove DB reads work.
    a real 404 from the DB-backed `getTodoById`.
 4. Migrate remaining methods, delete `todos.interface.ts`/`TodoEntity`
    alias, re-check erasure-vs-duplication.
-5. Replace `synchronize: true` with migrations.
-6. DTO validation, then Jest tests. Auth still deferred.
+5. DTO validation on create/update, then Jest tests (service unit + one e2e).
+6. README with run instructions, pushed to GitHub.
+7. Bonus, not gates: replace `synchronize: true` with migrations; auth.
+
+## Finish line (agreed 2026-10-09)
+The project is "done" when: (1) all five CRUD methods use the repository,
+(2) DTO validation on create and update, (3) basic Jest tests (service unit +
+one e2e), (4) README pushed to the public GitHub repo. Only then does the
+queued next project start: the same Todo API in Java (Spring Boot). Jorge set
+this gate himself because he tends to leave projects half-done — if he drifts
+toward Java early, gently name that tension.
 
 ## Review queue (resurface these in future warm-ups)
 - Controller + returned Promise: why no change needed? (new, first item)
