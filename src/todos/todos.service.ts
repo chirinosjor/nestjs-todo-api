@@ -12,8 +12,10 @@ export class TodosService {
   todos: Todo[] = [];
 
   getTodos(): Todo[] {
-    const filteredTodos = this.todos.filter(todo => todo.status !== 'deleted');
-    return filteredTodos;
+    this.todosRepository.find().then(todos => {
+      this.todos = todos;
+    });
+    return this.todos;
   }
 
   getTodoById(id: number): Todo | undefined {
