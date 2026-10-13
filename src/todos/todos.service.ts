@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Todo } from './todos.interface';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Todo as TodoEntity } from './todos.entity';
 
@@ -11,11 +11,10 @@ export class TodosService {
 
   todos: Todo[] = [];
 
-  getTodos(): Todo[] {
-    this.todosRepository.find().then(todos => {
-      this.todos = todos;
+  getTodos(): Promise<Todo[]> {
+    return this.todosRepository.find({
+      where: { status: Not('deleted') }
     });
-    return this.todos;
   }
 
   getTodoById(id: number): Todo | undefined {
@@ -25,10 +24,9 @@ export class TodosService {
     return this.todos.find(todo => todo.id === id);
   }
 
-  createTodo(todo: Omit<Todo, 'id'>): Todo {
-    const newTodo = { ...todo, id: this.todos.length + 1 };
-    this.todos.push(newTodo);
-    return newTodo;
+  createTodo(todo: Omit<Todo, 'id'>): Promise<Todo> {
+    const todoPayload = this.todosRepository.create(todo);
+    return this.todosRepository.save(todoPayload);
   }
 
   updateTodo(id: number, payload: Todo): Todo | null {
