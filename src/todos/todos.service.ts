@@ -17,11 +17,8 @@ export class TodosService {
     });
   }
 
-  getTodoById(id: number): Todo | undefined {
-    if (this.todos.length === 0 || this.todos === undefined) {
-      return undefined;
-    }
-    return this.todos.find(todo => todo.id === id);
+  getTodoById(id: number): Promise<Todo | null> {
+    return this.todosRepository.findOneBy({ id });
   }
 
   createTodo(todo: Omit<Todo, 'id'>): Promise<Todo> {
@@ -29,31 +26,27 @@ export class TodosService {
     return this.todosRepository.save(todoPayload);
   }
 
-  updateTodo(id: number, payload: Todo): Todo | null {
-    const selectedTodo = this.todos.find(todo => todo.id === id);
+  async updateTodo(id: number, payload: Todo): Promise<Todo | null> {
+    const selectedTodo = await this.todosRepository.findOneBy({ id });
     const updated = { ...selectedTodo, ...payload };
-    const findTodoIndex = this.todos.findIndex(todo => todo.id === id);
 
     if (!selectedTodo) {
       return null;
     }
 
-    this.todos[findTodoIndex] = updated;
-    return updated;
+    const saved = await this.todosRepository.save(updated);
+    return saved;
   }
 
-  deleteTodo(id: number): Todo | null {
-    const selectedTodo = this.todos.find(todo => todo.id === id);
-    const findTodoIndex = this.todos.findIndex(todo => todo.id === id);
+  async deleteTodo(id: number): Promise<Todo | null> {
+    const selectedTodo = await this.todosRepository.findOneBy({ id });
+
     if (!selectedTodo) {
       return null;
     }
 
-    this.todos[findTodoIndex] = {
-      ...selectedTodo,
-      status: 'deleted'
-    };
+    const deleted = { ...selectedTodo, status: 'deleted' as const };
 
-    return this.todos[findTodoIndex];
+    return await this.todosRepository.save(deleted);
   }
 }

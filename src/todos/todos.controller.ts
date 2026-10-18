@@ -12,8 +12,8 @@ export class TodosController {
   }
 
   @Get(':id')
-  getTodo(@Param('id') id: string) {
-    const selectedTodo = this.todosService.getTodoById(Number(id));
+  async getTodo(@Param('id') id: string) {
+    const selectedTodo = await this.todosService.getTodoById(Number(id));
 
     if (!selectedTodo) {
       throw new NotFoundException();
@@ -27,8 +27,8 @@ export class TodosController {
   }
 
   @Put(':id')
-  updateTodo(@Param('id') id: string, @Body() payload: Todo) {
-    const updatedTodo = this.todosService.updateTodo(Number(id), payload);
+  async updateTodo(@Param('id') id: string, @Body() payload: Todo) {
+    const updatedTodo = await this.todosService.updateTodo(Number(id), payload);
 
     if (!updatedTodo) {
       throw new NotFoundException();
@@ -38,8 +38,8 @@ export class TodosController {
   }
 
   @Delete(':id')
-  deleteTodo(@Param('id') id: string) {
-    const deletedTodo = this.todosService.deleteTodo(Number(id));
+  async deleteTodo(@Param('id') id: string) {
+    const deletedTodo = await this.todosService.deleteTodo(Number(id));
 
     if (!deletedTodo) {
       throw new NotFoundException();

@@ -1,133 +1,115 @@
 # Learning Path: Backend development with NestJS (Todo API)
-Last updated: 2026-10-13
+Last updated: 2026-10-18
 
 ## Level snapshot
 Beginner-intermediate in NestJS specifics, carrying substantial transferable
-backend experience from the Express Auth API. Session 7 (four days after the
-last one; neutral context for the cadence experiment). Two service methods
-now genuinely run against Postgres and were verified with real data:
-`getTodos()` (seeded a row by hand in TablePlus and saw it come back) and
-`createTodo()` (`create()` then `save()`, POST ids come from Postgres).
-Remaining service methods still use the in-memory array. Scope stays
-deliberately low-complexity; priority remains finishing end-to-end. Auth
-deferred/optional.
+backend experience from the Express Auth API. Session 8 (five days after the
+last one; he opened with "after battling with myself, finally after some days
+I'm here again" — neutral context, a win to protect). MILESTONE: all five CRUD
+methods in `TodosService` now run against Postgres through the TypeORM
+repository, verified live (including a real 404 and a real soft delete).
+Finish-line item 1 of 4 is DONE. Scope stays deliberately low-complexity;
+priority remains finishing end-to-end. Auth deferred/optional.
 
 ## Mastered (can explain from memory + apply)
-- Nest CLI bootstrap and the generic starter shape — 2026-08-26.
-- Layered architecture (controller = HTTP, service = business logic) —
-  carried over from Express. Retired.
-- Decorators as a mechanism (`@Module`, `@Controller`, `@Entity`,
-  `@InjectRepository` placement) — generalized across three contexts. Retired.
-- DI core reasoning (inject once, reuse) and Nest constructor injection +
-  singleton scope — retired. Pool *why* wording: see 2026-10-09 note
-  (pool = shared expensive resource, data lives in the DB).
-- Module tree / "activation" pattern, including dynamic modules
-  (`forRoot`) and per-feature registration (`forFeature`) — retired as
-  concept; the `forFeature` teach-back is still open (see Shaky).
+- Nest CLI bootstrap and generic starter shape — 2026-08-26.
+- Layered architecture, decorators, DI core reasoning, constructor injection
+  + singleton scope, module tree / dynamic modules — all retired.
 - Nest parameter decorators and HTTP verb decorators — 🟢.
-- Soft-delete filtering — 🟢; now expressed as `where: { status:
-  Not('deleted') }` in `find()`, written by him this session unaided.
-- Docker Compose + container isolation / port-mapping model — 🟢.
-- `TypeOrmModule.forRoot()` wiring + live connection; self-driven
-  break-and-observe testing.
-- TS generic type erasure → why `@InjectRepository(Todo)` is needed.
-- Async DB access → `Promise<T>` return types. **2026-10-13: wrote
-  `getTodos(): Promise<Todo[]>` and `createTodo(): Promise<Todo>` himself,
-  returning the repository promise directly (no `.then`, no `await`
-  needed).**
-- **NEW 2026-10-13 — verifying a read path with seeded data.** Added a row
-  by hand in TablePlus and confirmed it came back from `GET /todos` — the
-  response that the in-memory version could not have produced. Directly
-  resolves the 2026-10-09 "empty array doesn't prove a DB read" gap.
-- **NEW 2026-10-13 — self-diagnosed stale-process bug.** `POST` returned ids
-  1, 2, 3 while the table already held a row, and `GET` showed only the
-  hand-made row. After a nudge to compare the ids against the old
-  `todos.length + 1` logic, he found he'd started the server with `npm run
-  start` instead of `npm run start:dev` (no `--watch`), so edits to
-  `createTodo` were never loaded. Fixed by restarting. Lesson: when code
-  looks right but behavior matches the OLD code, suspect the running process
-  is stale before suspecting the code.
-- **NEW 2026-10-13 — `create()` vs `save()`:** correctly stated create
-  builds the entity object in memory, save writes it to the DB and is the
-  async one. (Resolves the earlier `insert` mix-up.)
-- **OBSERVED 2026-10-13 (not yet verbally explained) — the controller needs
-  no `await`/`try-catch`:** `TodosController` returns the Promise from the
-  service directly and the POST/GET responses work correctly. He said he
-  "forgot about" the question and later gave a partial intuition ("Nest
-  provides an invisible layer that resolves promises" — same as the
-  exception-filter layer). Treat as understood-in-practice; ask for a
-  one-line explanation next time.
+- Docker Compose + container isolation / port-mapping — 🟢.
+- `TypeOrmModule.forRoot()` wiring; TS generic erasure → `@InjectRepository`.
+- Async DB access → `Promise<T>` return types — writes them unaided.
+- Verifying a read path with seeded data; debugging a stale process
+  (`start` vs `start:dev`) — 2026-10-13.
+- `create()` (sync, in-memory) vs `save()` (async, writes; insert when no
+  matching `id`, update when the `id` matches).
+- **NEW 2026-10-18 — Nest resolves a *returned* Promise; you must `await`
+  when you *inspect* the value.** Explained in his own words for returning
+  ("a final layer that resolves the promise even without await, just like
+  exceptions") and applied correctly: `getTodo`, `updateTodo`, `deleteTodo`
+  controller handlers are `async` and `await` the service before the
+  `if (!x) throw new NotFoundException()` check, after predicting that a
+  Promise is always truthy so the 404 would never fire.
+- **NEW 2026-10-18 — Nest exception propagation, via OBSERVED behavior.**
+  `throw new NotFoundException()` → 404 with Nest's JSON body, no `try/catch`
+  written; unexpected error (Postgres stopped while the app was running) →
+  generic `500 Internal server error` body, process stays alive. Predicted
+  the 500 correctly, and gave the right reason it is good that the body hides
+  internals (info-leak prevention, same idea as the Express enumeration fix).
+  This closes the retest queued since 2026-10-06.
+- **NEW 2026-10-18 — TS literal widening + `as const`.** `{ ...todo, status:
+  'deleted' }` stored in a `const` widens `status` to `string` and fails
+  against the union type; fixed it himself with `as const` after one
+  question. Needed a nudge to see why the old inline version compiled.
+- **NEW 2026-10-18 — merged-object update pattern with the repository:**
+  find (await) → null check → `{ ...existing, ...payload }` → `save`.
+  Wrote `updateTodo` and `deleteTodo` (soft delete via `status`) himself with
+  a partial template (rung 3) for delete.
 
 ## Shaky / weak spots (needs spaced review)
-- **Nest exception/`throw` propagation — STILL UNRESOLVED as a verbal model.**
-  Needs an observed-behavior retest with a real 404 from a DB-backed
-  `getTodoById` (not another verbal cold check). Related, parked, UNANSWERED:
-  what happens in Node to a rejected Promise nobody handles? The 2026-10-13
-  Postgres-stopped test showed the server "couldn't connect"; likely the
-  process crashed from an unhandled rejection in the old fire-and-forget
-  `.then(...)` — he didn't look at the terminal to confirm, so it's
-  unconfirmed.
-- **`forRoot` vs `forFeature` teach-back — STILL INCOMPLETE** (asked three
-  times, never closed). Got: `forRoot` = initial DB connection config, once,
-  in `AppModule`; `forFeature` "imports the orm module in other modules".
-  Missing: `forFeature([Entity])` provides a `Repository<Entity>` provider
-  to that module, which `TodosService`'s `@InjectRepository(Todo)`
-  constructor parameter needs; `forRoot` alone does not. One clean
-  one-sentence cold restatement needed.
-- Why a connection pool is injected once (data vs. connection wording) —
-  re-check lightly; fine conceptually.
-- Erasure-vs-duplication conflation (`@InjectRepository` reason vs.
-  interface-deletion reason) — light check once `todos.interface.ts` is
-  deleted.
-- Tendency to skip the harder half of multi-part questions (answers the
-  last/easiest part) — noticed 2026-10-13 across several turns; ask one
-  question at a time and re-ask the skipped one.
+- **`forRoot` vs `forFeature` teach-back — STILL OPEN (asked 4 times).** Got:
+  `forRoot` = initial DB connection config in `AppModule`. Missing:
+  `forFeature([Entity])` provides a `Repository<Entity>` provider inside that
+  module, which the `@InjectRepository(Todo)` constructor parameter needs;
+  `forRoot` alone doesn't provide it. Said "completely forgot" this session.
+  Ask for one sentence, first thing, and consider re-teaching with the actual
+  `UnknownDependenciesException` as the anchor.
+- **Missing `await` when using a repository result (3 occurrences, two
+  sessions):** controller `getTodo` (predicted correctly in advance, fixed),
+  service `updateTodo` (created a duplicate row by accident because the
+  spread of a Promise is `{}`), controller `deleteTodo` (reminded). Habit
+  taught: hover the variable — if its type is `Promise<...>`, you can't
+  inspect it yet. Watch for a clean pass with no reminder.
+- **Accidentally removed working code (`payload` merge in `updateTodo`)
+  while editing.** Caught only because the coach reread the file. Concrete
+  motivation for Jest tests. Habit: re-run the quick checks after any edit.
+- Mixing up the Nest process and the Postgres container ("server") when
+  predicting failure modes; resolved by observing the log (startup failure =
+  10 retries then exit; runtime failure = 500).
+- Skips the harder half of multi-part questions; when overloaded (3 fixes at
+  once) said "i'm confused". Coach's fault too: keep to ONE step at a time.
+- Open and unanswered: in `{ ...selectedTodo, ...payload }`, which `id` wins
+  when the body's `id` differs from the URL's (the payload wins, which would
+  update a different row — a real bug to fix, not yet addressed).
+- Erasure-vs-duplication conflation — light check once `todos.interface.ts`
+  is deleted.
 
 ## Mental models built
-- Nest Module = declarative composition root.
-- Decorator = function attaching metadata read by a framework.
-- Nest DI container = automated `createAuth(pool)`.
-- Dynamic module registration: a `.forRoot()`/`.forFeature()` call's return
-  value goes in `imports`.
+- Nest Module = declarative composition root; Decorator = metadata function;
+  DI container = automated `createAuth(pool)`.
+- Dynamic module: `.forRoot()` / `.forFeature()` return value goes in
+  `imports`. `forRoot` once (connection); `forFeature` per module
+  (repository provider on the shared connection) — teach-back pending.
 - Connection pool = shared expensive resource; data lives in the DB.
-- `forRoot` (once, connection) vs `forFeature` (per module, repository
-  provider on the shared connection) — model taught, teach-back pending.
-- TS generic erasure.
-- ORM Entity = table blueprint + in-memory row shape.
-- **NEW — Nest awaits whatever a handler returns:** a returned Promise is
-  resolved by Nest before the response is written; a rejection reaches the
-  exception filter. So handlers just `return` the service's promise.
-- **NEW — Stale process vs. wrong code:** if behavior matches the *old* code,
-  check how the process was started (`start:dev` = watch/rebuild) before
-  debugging the code.
-- **NEW — A response proves nothing unless the old implementation would have
-  produced a different one** (seed a row only the DB could return).
+- Nest awaits what a handler *returns*; a rejection or `throw` reaches the
+  global exception filter (HttpException → its status/body; anything else →
+  generic 500). Inspecting a value needs `await` first.
+- A response proves nothing unless the old implementation would have
+  answered differently; stale process vs. wrong code.
+- Soft delete = update `status`, hide it in reads (`Not('deleted')`).
 
 ## Current focus
-Migrating `TodosService` method by method to `todosRepository`.
-DONE and verified live: `getTodos` (find + `Not('deleted')`), `createTodo`
-(`create` + `save`). Module wiring DONE (`forFeature([Todo])`).
-NOT yet done: `getTodoById`, `updateTodo`, `deleteTodo` still operate on the
-in-memory `this.todos` array (so the controller's GET /:id, PUT /:id,
-DELETE /:id don't see DB rows yet). `todos.interface.ts` / `TodoEntity`
-alias still present. Code compiles and runs; nothing mid-edit.
-Always run with `npm run start:dev`.
+All five `TodosService` methods use `todosRepository`: `getTodos` (find +
+`Not('deleted')`), `getTodoById` (`findOneBy`), `createTodo` (create + save),
+`updateTodo` (find, merge, save), `deleteTodo` (find, `status: 'deleted' as
+const`, save). Controller handlers for get-by-id/update/delete are `async` and
+`await` the service. `tsc --noEmit` is clean. Verified live. LEFTOVERS (dead
+code, not broken): `todos: Todo[] = []` field in `TodosService`,
+`todos.interface.ts`, the `Todo as TodoEntity` alias, and the controller
+still types payloads with the interface.
 
 ## Next up (planned)
-1. Migrate `getTodoById` — predict first: which repository method fetches
-   one row by id, what does it return when nothing matches
-   (`findOneBy` → `Todo | null`), and what should the signature be
-   (`Promise<Todo | null>`). Then make `GET /todos/:id` 404 for a missing id
-   and observe the actual HTTP response — this is also the overdue
-   observed-behavior retest of exception propagation.
-2. Migrate `updateTodo` and `deleteTodo` (check whether delete should stay a
-   soft delete: set `status = 'deleted'` rather than removing the row).
-3. Delete `todos.interface.ts` and the `TodoEntity` alias; use the entity
-   everywhere; re-check erasure-vs-duplication.
-4. DTO validation on create/update (class-validator + pipes).
-5. Jest tests (service unit + one e2e).
-6. README with run instructions, pushed to GitHub.
-7. Bonus, not gates: migrations instead of `synchronize: true`; auth.
+1. Cleanup: delete the dead `todos` array, delete `todos.interface.ts`, use
+   the entity (`Todo` from `todos.entity.ts`) everywhere, drop the alias.
+   Predict first: what breaks when the interface file is deleted, and will
+   `@InjectRepository` still be needed (re-check erasure-vs-duplication).
+2. Fix the id-mismatch hole in `updateTodo` (URL id should win over the
+   body's id) — a small, concrete mini-task.
+3. DTO validation on create/update (class-validator + pipes).
+4. Jest tests (service unit + one e2e). Start with a test that would have
+   caught the `updateTodo` merge regression.
+5. README with run instructions, pushed to GitHub.
+6. Bonus, not gates: migrations instead of `synchronize: true`; auth.
 
 ## Finish line (agreed 2026-10-09)
 The project is "done" when: (1) all five CRUD methods use the repository,
@@ -135,17 +117,16 @@ The project is "done" when: (1) all five CRUD methods use the repository,
 one e2e), (4) README pushed to the public GitHub repo. Only then does the
 queued next project start: the same Todo API in Java (Spring Boot). Jorge set
 this gate himself because he tends to leave projects half-done — if he drifts
-toward Java early, gently name that tension. Progress: items 1 half done
-(2 of 5 methods).
+toward Java early, gently name that tension. Progress: (1) DONE 2026-10-18.
 
 ## Review queue (resurface these in future warm-ups)
 - `forRoot` vs `forFeature` — one-sentence cold teach-back (open since
   2026-10-09; ask first thing).
-- Why the controller needs no `await`/`try-catch` (Nest resolves returned
-  Promises; rejections reach the exception filter) — one line.
+- `await` when inspecting a Promise vs. returning it — apply, don't recite.
+- Which `id` wins in the update merge — answer + fix.
 - Unhandled rejection in Node: what happens to a rejected Promise nobody
-  handles? (Parked 2026-10-13.)
-- Nest exception/HTTP filter propagation — via a real 404, observed.
+  handles (the old fire-and-forget `.then`)? Parked.
 - Erasure-vs-duplication — after the interface is deleted.
-- Retired: container isolation, constructor injection/singleton, module tree,
-  decorators, layered architecture, create vs save.
+- Retired: exception propagation (observed 2026-10-18), container isolation,
+  constructor injection/singleton, module tree, decorators, layered
+  architecture, create vs save.
