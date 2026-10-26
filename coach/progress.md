@@ -46,14 +46,14 @@ priority remains finishing end-to-end. Auth deferred/optional.
   Wrote `updateTodo` and `deleteTodo` (soft delete via `status`) himself with
   a partial template (rung 3) for delete.
 
+- **`forRoot` vs `forFeature` — RETIRED 2026-10-20 at Jorge's request** (asked
+  4 times, never fully recalled; he's done with it). Retired by his decision,
+  not by a passed teach-back. Last known state: `forRoot` = connection config
+  in `AppModule`; `forFeature([Entity])` provides the `Repository<Entity>` that
+  `@InjectRepository` needs. Only resurface if an `UnknownDependenciesException`
+  shows up naturally in the project.
+
 ## Shaky / weak spots (needs spaced review)
-- **`forRoot` vs `forFeature` teach-back — STILL OPEN (asked 4 times).** Got:
-  `forRoot` = initial DB connection config in `AppModule`. Missing:
-  `forFeature([Entity])` provides a `Repository<Entity>` provider inside that
-  module, which the `@InjectRepository(Todo)` constructor parameter needs;
-  `forRoot` alone doesn't provide it. Said "completely forgot" this session.
-  Ask for one sentence, first thing, and consider re-teaching with the actual
-  `UnknownDependenciesException` as the anchor.
 - **Missing `await` when using a repository result (3 occurrences, two
   sessions):** controller `getTodo` (predicted correctly in advance, fixed),
   service `updateTodo` (created a duplicate row by accident because the
@@ -79,7 +79,7 @@ priority remains finishing end-to-end. Auth deferred/optional.
   DI container = automated `createAuth(pool)`.
 - Dynamic module: `.forRoot()` / `.forFeature()` return value goes in
   `imports`. `forRoot` once (connection); `forFeature` per module
-  (repository provider on the shared connection) — teach-back pending.
+  (repository provider on the shared connection) — retired 2026-10-20.
 - Connection pool = shared expensive resource; data lives in the DB.
 - Nest awaits what a handler *returns*; a rejection or `throw` reaches the
   global exception filter (HttpException → its status/body; anything else →
@@ -119,9 +119,13 @@ queued next project start: the same Todo API in Java (Spring Boot). Jorge set
 this gate himself because he tends to leave projects half-done — if he drifts
 toward Java early, gently name that tension. Progress: (1) DONE 2026-10-18.
 
+**REVISED 2026-10-25 by Jorge (coach recommended keeping one unit test; he
+chose the minimum):** item (3) Jest tests is DROPPED from this project and
+deferred to the Java project (first real testing exposure moves there; testing
+stays 🔴 Unseen). Finish line is now: (1) repository CRUD — DONE, (2) DTO
+validation on create and update, (4) README pushed to GitHub. Two items left.
+
 ## Review queue (resurface these in future warm-ups)
-- `forRoot` vs `forFeature` — one-sentence cold teach-back (open since
-  2026-10-09; ask first thing).
 - `await` when inspecting a Promise vs. returning it — apply, don't recite.
 - Which `id` wins in the update merge — answer + fix.
 - Unhandled rejection in Node: what happens to a rejected Promise nobody

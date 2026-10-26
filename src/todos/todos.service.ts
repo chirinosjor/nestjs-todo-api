@@ -1,15 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Todo } from './todos.interface';
 import { Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Todo as TodoEntity } from './todos.entity';
+import { Todo } from './todos.entity';
+import { CreateTodoDto } from './dto/create-todo.dto';
 
 @Injectable()
 export class TodosService {
 
-  constructor(@InjectRepository(TodoEntity) private readonly todosRepository: Repository<Todo>) { }
-
-  todos: Todo[] = [];
+  constructor(@InjectRepository(Todo) private readonly todosRepository: Repository<Todo>) { }
 
   getTodos(): Promise<Todo[]> {
     return this.todosRepository.find({
@@ -26,14 +24,14 @@ export class TodosService {
     return this.todosRepository.save(todoPayload);
   }
 
-  async updateTodo(id: number, payload: Todo): Promise<Todo | null> {
+  async updateTodo(id: number, payload: CreateTodoDto): Promise<Todo | null> {
     const selectedTodo = await this.todosRepository.findOneBy({ id });
-    const updated = { ...selectedTodo, ...payload };
 
     if (!selectedTodo) {
       return null;
     }
 
+    const updated = { ...selectedTodo, ...payload, id };
     const saved = await this.todosRepository.save(updated);
     return saved;
   }

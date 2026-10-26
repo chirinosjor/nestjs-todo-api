@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
 import { TodosService } from './todos.service';
-import type { Todo } from './todos.interface';
+import { Todo } from './todos.entity';
+import { CreateTodoDto } from './dto/create-todo.dto';
 
 @Controller('/todos')
 export class TodosController {
@@ -22,12 +23,12 @@ export class TodosController {
   }
 
   @Post()
-  createTodo(@Body() payload: Omit<Todo, 'id'>) {
+  createTodo(@Body() payload: CreateTodoDto) {
     return this.todosService.createTodo(payload);
   }
 
   @Put(':id')
-  async updateTodo(@Param('id') id: string, @Body() payload: Todo) {
+  async updateTodo(@Param('id') id: string, @Body() payload: CreateTodoDto) {
     const updatedTodo = await this.todosService.updateTodo(Number(id), payload);
 
     if (!updatedTodo) {
